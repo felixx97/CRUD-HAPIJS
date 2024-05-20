@@ -1,27 +1,32 @@
 'use strict';
 
 const Hapi = require('@hapi/hapi');
-const Joi = require('joi'); // Para validação de entrada
+const Joi = require('joi');
+const Path = require('path');
 
 const init = async () => {
-    const server = Hapi.Server({
+    const server = Hapi.server({
         port: 3000,
         host: 'localhost'
     });
 
-    // Array para armazenar as notas de música (simulação temporária)
+    await server.register(require('@hapi/inert'));
+
     let musicNotes = [];
 
-    // Rota para a página inicial (home)
+    // Rota para servir arquivos estáticos
     server.route({
         method: 'GET',
-        path: '/',
-        handler: (request, h) => {
-            return '<h1>Bloco de Notas de Música</h1><p>Esta é a página inicial do Bloco de Notas de Música.</p>';
+        path: '/{param*}',
+        handler: {
+            directory: {
+                path: 'public',
+                index: ['index.html']
+            }
         }
     });
 
-    // Rota para obter todas as notas de música
+    // Rota para obter todas as notas de música em formato JSON
     server.route({
         method: 'GET',
         path: '/api/notes',
@@ -36,44 +41,64 @@ const init = async () => {
         path: '/api/notes',
         handler: (request, h) => {
             const { title, artist, description, composer, album } = request.payload;
-
-            // Verifica se os campos obrigatórios estão presentes e não estão em branco
-            if (!title || !artist || !composer || !album) {
-                const missingFields = [];
-                if (!title) missingFields.push('title');
-                if (!artist) missingFields.push('artist');
-                if (!composer) missingFields.push('composer');
-                if (!album) missingFields.push('album');
-
-                return h.response({
-                    error: 'Campos obrigatórios não preenchidos ou em branco',
-                    missingFields
-                }).code(400);
-            }
-
-            // Se a descrição não estiver presente, utiliza o valor padrão "Sem descrição"
-            const newDescription = description || 'Sem descrição';
-
             const newNote = {
                 id: musicNotes.length + 1,
                 title,
                 artist,
-                description: newDescription,
+                description: description || 'Sem descrição',
                 composer,
                 album
             };
 
             musicNotes.push(newNote);
-            return { message: 'Nota de música criada com sucesso!', data: newNote };
+
+            return h.response(newNote).code(201);
         },
         options: {
             validate: {
                 payload: Joi.object({
                     title: Joi.string().required(),
                     artist: Joi.string().required(),
-                    description: Joi.string(),
+                    description: Joi.string().optional(),
                     composer: Joi.string().required(),
                     album: Joi.string().required()
+                })
+            }
+        }
+    });
+
+    // Rota para atualizar uma nota de música pelo ID
+    server.route({
+        method: 'PUT',
+        path: '/api/notes/{id}',
+        handler: (request, h) => {
+            const { id } = request.params;
+            const { title, artist, description, composer, album } = request.payload;
+            const noteIndex = musicNotes.findIndex(note => note.id === parseInt(id));
+
+            if (noteIndex !== -1) {
+                musicNotes[noteIndex] = {
+                    ...musicNotes[noteIndex],
+                    title: title || musicNotes[noteIndex].title,
+                    artist: artist || musicNotes[noteIndex].artist,
+                    description: description || musicNotes[noteIndex].description,
+                    composer: composer || musicNotes[noteIndex].composer,
+                    album: album || musicNotes[noteIndex].album
+                };
+
+                return { data: musicNotes[noteIndex] };
+            } else {
+                return h.response({ error: 'Nota não encontrada' }).code(404);
+            }
+        },
+        options: {
+            validate: {
+                payload: Joi.object({
+                    title: Joi.string().optional(),
+                    artist: Joi.string().optional(),
+                    description: Joi.string().optional(),
+                    composer: Joi.string().optional(),
+                    album: Joi.string().optional()
                 })
             }
         }
@@ -85,26 +110,24 @@ const init = async () => {
         path: '/api/notes/{id}',
         handler: (request, h) => {
             const { id } = request.params;
-            const index = musicNotes.findIndex(note => note.id === parseInt(id));
-            if (index !== -1) {
-                musicNotes.splice(index, 1);
-                return { message: `Nota de música com ID ${id} deletada com sucesso!` };
+            const noteIndex = musicNotes.findIndex(note => note.id === parseInt(id));
+
+            if (noteIndex !== -1) {
+                musicNotes.splice(noteIndex, 1);
+                return { message: `Nota com ID ${id} deletada com sucesso!` };
             } else {
-                return { message: `Nota de música com ID ${id} não encontrada!` };
+                return h.response({ error: 'Nota não encontrada' }).code(404);
             }
         }
     });
 
-    // Inicia o servidor
     await server.start();
-    console.log('Servidor Hapi.js rodando em:', server.info.uri);
+    console.log('Servidor rodando em:', server.info.uri);
 };
 
-// Captura erros não tratados e encerra o processo
 process.on('unhandledRejection', (err) => {
     console.log(err);
     process.exit(1);
 });
 
-// Chama a função de inicialização
 init();
