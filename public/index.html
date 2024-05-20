@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,25 +9,28 @@
 <body>
     <div class="container">
         <h1>Bloco de Notas de Música</h1>
-        <h2>Notas de Música</h2>
-        <ul id="notesList"></ul>
-
-        <h2>Adicionar Nova Nota</h2>
         <form id="addNoteForm">
-            <label for="title">Título:</label>
-            <input type="text" id="title" name="title" required><br>
-            <label for="artist">Artista:</label>
-            <input type="text" id="artist" name="artist" required><br>
-            <label for="description">Descrição:</label>
-            <textarea id="description" name="description"></textarea><br>
-            <label for="composer">Compositor:</label>
-            <input type="text" id="composer" name="composer" required><br>
-            <label for="album">Álbum:</label>
-            <input type="text" id="album" name="album" required><br>
+            <input type="text" name="title" placeholder="Título" required>
+            <input type="text" name="artist" placeholder="Artista" required>
+            <input type="text" name="album" placeholder="Álbum" required>
+            <input type="text" name="composer" placeholder="Compositor" required>
+            <textarea name="description" placeholder="Descrição"></textarea>
             <button type="submit">Adicionar Nota</button>
         </form>
-    </div>
 
+        <form id="editNoteForm" style="display: none;">
+            <input type="hidden" id="editId">
+            <input type="text" id="editTitle" name="editTitle" placeholder="Título" required>
+            <input type="text" id="editArtist" name="editArtist" placeholder="Artista" required>
+            <input type="text" id="editAlbum" name="editAlbum" placeholder="Álbum" required>
+            <input type="text" id="editComposer" name="editComposer" placeholder="Compositor" required>
+            <textarea id="editDescription" name="editDescription" placeholder="Descrição"></textarea>
+            <button type="submit">Salvar Alterações</button>
+            <button type="button" id="cancelEdit">Cancelar</button>
+        </form>
+
+        <ul id="notesList"></ul>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
